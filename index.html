@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bodysecrets Price List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #2d5530;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d5530, #3e7b3e);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        /* Search Bar */
+        .search-container {
+            margin-bottom: 25px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid #2d5530;
+            border-radius: 25px;
+            font-size: 1.1em;
+            outline: none;
+            transition: all 0.3s ease;
+            line-height: 1.4;
+        }
+
+        .search-input:focus {
+            border-color: #1e3a21;
+            box-shadow: 0 0 10px rgba(45, 85, 48, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #2d5530;
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-icon:hover {
+            opacity: 1;
+        }
+
+        .search-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .search-results {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+            position: relative;
+            z-index: 1;
+            background: transparent;
+            padding: 0;
+        }
+
+        /* Loading Spinner */
+        .loading-container {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        .spinner {
+            border: 4px solid #e3e3e3;
+            border-top: 4px solid #2d5530;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        /* Error State */
+        .error-container {
+            text-align: center;
+            padding: 50px 20px;
+            color: #d32f2f;
+        }
+
+        .error-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .error-text {
+            font-size: 1.2em;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .debug-info {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .retry-button {
+            background: #2d5530;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+        }
+
+        .retry-button:hover {
+            background: #1e3a21;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 2px solid #2d5530;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: #2d5530;
+            color: white;
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1.1em;
+            border-bottom: 2px solid #1e3a21;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 1em;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #e8f5e8;
+        }
+
+        .product-name {
+            font-weight: 500;
+            color: #2d5530;
+        }
+
+        .product-size {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .price {
+            font-weight: 600;
+            color: #1e3a21;
+            font-size: 1.1em;
+        }
+
+        /* No results message */
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            th, td {
+                padding: 12px 15px;
+                font-size: 0.95em;
+            }
+
+            .search-input {
+                padding: 12px 45px 12px 15px;
+                font-size: 1em;
+            }
+
+            .search-icon {
+                right: 15px;
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* Hidden class for showing/hiding content */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bodysecrets Price List</h1>
+            <p>Current Product Prices</p>
+        </div>
+        
+        <div class="content">
+            <!-- Loading State -->
+            <div id="loading" class="loading-container">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading price list...</div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error" class="error-container hidden">
+                <div class="error-icon">⚠️</div>
+                <div class="error-text">Currently Unavailable</div>
+                <div class="debug-info" id="debug-info">
+                    <p id="debug-details">Checking connection...</p>
+                    <button class="retry-button" onclick="retryConnection()">Try Again</button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div id="search-container" class="search-container hidden">
+                <div style="position: relative;">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        class="search-input" 
+                        placeholder="Search for products..."
+                        oninput="filterProducts()"
+                    >
+                    <div class="search-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div id="search-results" class="search-results"></div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="table-container" class="table-container hidden">
+                <table id="price-table">
+                    <thead>
+                        <tr id="table-header">
+                            <!-- Headers will be set dynamically -->
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- No Results Message -->
+            <div id="no-results" class="no-results hidden">
+                No products found matching your search.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google Sheet configuration
+        const SHEET_ID = '1WC36RiBxwrBHa-qGPj60O-_GInXfISfA_0NmXRKv_p4';
+        const GID = '0';
+
+        // DOM elements
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        const searchContainer = document.getElementById('search-container');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const tableContainer = document.getElementById('table-container');
+        const tableHeader = document.getElementById('table-header');
+        const tableBody = document.getElementById('table-body');
+        const noResults = document.getElementById('no-results');
+        const debugDetails = document.getElementById('debug-details');
+
+        let allProducts = []; // Store all products for searching
+        let attemptCount = 0;
+
+        // Format price as Nigerian Naira
+        function formatPrice(price) {
+            if (price === null || price === undefined || price === '') {
+                return '₦0';
+            }
+            
+            // Convert to number if it's a string
+            const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.-]/g, '')) : price;
+            
+            if (isNaN(numPrice)) {
+                return '₦0';
+            }
+            
+            // Format with commas and only show decimals when needed
+            const formatted = numPrice % 1 === 0 ? 
+                numPrice.toLocaleString('en-US') : 
+                numPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            return `₦${formatted}`;
+        }
+
+        // Show loading state
+        function showLoading() {
+            loadingElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            searchContainer.classList.add('hidden');
+            tableContainer.classList.add('hidden');
+            noResults.classList.add('hidden');
+        }
+
+        // Show error state
+        function showError(debugMessage) {
+            debugDetails.innerHTML = debugMessage;
+            loadingElement.classList.add('hidden');
+            errorElement.classList.remove('hidden');
+            searchContainer.classList.add('hidden');
+            tableContainer.classList.add('hidden');
+            noResults.classList.add('hidden');
+        }
+
+        // Show table with data
+        function showTable() {
+            loadingElement.classList.add('hidden');
+            errorElement.classList.add('hidden');
+            searchContainer.classList.remove('hidden');
+            tableContainer.classList.remove('hidden');
+            noResults.classList.add('hidden');
+            updateSearchResults();
+        }
+
+        // Update search results count
+        function updateSearchResults() {
+            const visibleRows = tableBody.querySelectorAll('tr:not(.hidden)').length;
+            const totalRows = allProducts.length;
+            
+            if (searchInput.value.trim()) {
+                searchResults.textContent = `Showing ${visibleRows} of ${totalRows} products`;
+            } else {
+                searchResults.textContent = `${totalRows} products available`;
+            }
+        }
+
+        // Filter products based on search input
+        function filterProducts() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const rows = tableBody.querySelectorAll('tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                let matchFound = false;
+                
+                cells.forEach(cell => {
+                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                        matchFound = true;
+                    }
+                });
+                
+                if (matchFound) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0 && searchTerm) {
+                tableContainer.classList.add('hidden');
+                noResults.classList.remove('hidden');
+            } else {
+                tableContainer.classList.remove('hidden');
+                noResults.classList.add('hidden');
+            }
+
+            updateSearchResults();
+        }
+
+        // Parse CSV data exactly as it appears in the sheet
+        function parseCSVData(csvText) {
+            console.log('Parsing CSV data...');
+            
+            // Split by newlines to get rows
+            const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+            
+            if (lines.length === 0) {
+                throw new Error('No data found in CSV');
+            }
+            
+            const results = [];
+            let headers = [];
+            
+            // Process each line
+            lines.forEach((line, index) => {
+                // Split by comma, but handle quoted values
+                const row = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.trim());
+                
+                if (index === 0) {
+                    headers = row;
+                } else {
+                    // Only add non-empty rows
+                    if (row.some(cell => cell && cell.trim())) {
+                        results.push(row);
+                    }
+                }
+            });
+            
+            console.log('Parsed headers:', headers);
+            console.log('Parsed data rows:', results.length);
+            
+            return { headers, data: results };
+        }
+
+        // Populate table with exact data from sheet
+        function populateTable(headers, data) {
+            // Set up table headers exactly as they appear in the sheet
+            tableHeader.innerHTML = '';
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                tableHeader.appendChild(th);
+            });
+
+            // Populate table body with exact data
+            tableBody.innerHTML = '';
+            allProducts = data;
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                row.forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    
+                    // Format price column if it contains numbers (likely the price)
+                    if (headers[index] && headers[index].toLowerCase().includes('price') && 
+                        cell && /^\d+(\.\d+)?$/.test(cell.trim())) {
+                        td.innerHTML = `<span class="price">${formatPrice(cell)}</span>`;
+                    } else if (headers[index] && headers[index].toLowerCase().includes('product')) {
+                        td.innerHTML = `<span class="product-name">${cell || ''}</span>`;
+                    } else if (headers[index] && (headers[index].toLowerCase().includes('size') || headers[index].toLowerCase().includes('sizes'))) {
+                        td.innerHTML = `<span class="product-size">${cell || ''}</span>`;
+                    } else {
+                        td.textContent = cell || '';
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tableBody.appendChild(tr);
+            });
+            
+            if (data.length === 0) {
+                throw new Error('No valid product data found');
+            }
+            
+            showTable();
+        }
+
+        // Try multiple methods to get fresh data
+        async function tryMultipleMethods() {
+            const timestamp = new Date().getTime(); // Cache busting
+            
+            const methods = [
+                {
+                    name: 'CSV Export',
+                    url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&timestamp=${timestamp}`
+                },
+                {
+                    name: 'TSV Export', 
+                    url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&gid=${GID}&timestamp=${timestamp}`
+                }
+            ];
+
+            for (const method of methods) {
+                try {
+                    console.log(`Trying ${method.name}...`);
+                    
+                    // Try with CORS proxy
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                    const response = await fetch(proxyUrl + encodeURIComponent(method.url), {
+                        cache: 'no-store' // Always fetch fresh data
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.text();
+                        if (data && data.trim()) {
+                            console.log(`Success with ${method.name}`);
+                            return { method: method.name, data: data };
+                        }
+                    }
+                } catch (error) {
+                    console.log(`${method.name} failed:`, error);
+                }
+            }
+            
+            throw new Error('All methods failed');
+        }
+
+        // Main fetch function - always gets fresh data
+        async function fetchPriceList() {
+            try {
+                attemptCount++;
+                showLoading();
+                
+                console.log('Fetching fresh data from Google Sheets...');
+                const result = await tryMultipleMethods();
+                
+                console.log(`Data fetched using ${result.method}`);
+                
+                // Parse and display data immediately
+                const parsed = parseCSVData(result.data);
+                populateTable(parsed.headers, parsed.data);
+                
+            } catch (error) {
+                console.error('Error fetching price list:', error);
+                showError(`
+                    <p><strong>Connection Failed (Attempt ${attemptCount}):</strong></p>
+                    <p>• Unable to fetch current data from Google Sheets</p>
+                    <p><strong>Please verify:</strong></p>
+                    <p>1. Sheet is published to web: File → Share → Publish to web</p>
+                    <p>2. Sharing is public: Share → Anyone with link → Viewer</p>
+                    <p>3. Test this URL: <a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}" target="_blank">Direct CSV</a></p>
+                `);
+            }
+        }
+
+        // Retry function
+        function retryConnection() {
+            fetchPriceList();
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded - fetching current price list...');
+            fetchPriceList();
+        });
+
+        // Also refresh when page becomes visible (if user switches tabs and comes back)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('Page visible - refreshing data...');
+                fetchPriceList();
+            }
+        });
+    </script>
+</body>
+</html>
