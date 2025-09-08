@@ -17,15 +17,21 @@
             color: #2d5530;
             line-height: 1.6;
             padding: 20px;
+            margin: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .container {
             max-width: 900px;
+            width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         .header {
@@ -33,6 +39,8 @@
             color: white;
             padding: 30px 20px;
             text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .header h1 {
@@ -48,11 +56,15 @@
 
         .content {
             padding: 30px 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* Search Bar */
         .search-container {
             margin-bottom: 25px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .search-input {
@@ -64,6 +76,7 @@
             outline: none;
             transition: all 0.3s ease;
             line-height: 1.4;
+            box-sizing: border-box;
         }
 
         .search-input:focus {
@@ -171,31 +184,51 @@
 
         /* Table Styles */
         .table-container {
-            overflow-x: auto;
             border-radius: 8px;
             border: 2px solid #2d5530;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             background: white;
+            table-layout: fixed; /* Fixed layout prevents overflow */
+            box-sizing: border-box;
         }
 
         th {
             background: #2d5530;
             color: white;
-            padding: 15px 20px;
+            padding: 15px 10px;
             text-align: left;
             font-weight: 600;
             font-size: 1.1em;
             border-bottom: 2px solid #1e3a21;
+            box-sizing: border-box;
+        }
+
+        /* Column width distribution */
+        th:nth-child(1), td:nth-child(1) {
+            width: 50%; /* Product name gets 50% */
+        }
+
+        th:nth-child(2), td:nth-child(2) {
+            width: 25%; /* Size gets 25% */
+        }
+
+        th:nth-child(3), td:nth-child(3) {
+            width: 25%; /* Price gets 25% */
         }
 
         td {
-            padding: 15px 20px;
+            padding: 15px 10px;
             border-bottom: 1px solid #e0e0e0;
             font-size: 1em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            box-sizing: border-box;
         }
 
         tr:nth-child(even) {
@@ -235,6 +268,7 @@
         @media (max-width: 600px) {
             body {
                 padding: 10px;
+                margin: 0;
             }
 
             .header {
@@ -250,31 +284,43 @@
             }
 
             .table-container {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+                border-radius: 8px;
+                border: 2px solid #2d5530;
+                width: 100%;
+                box-sizing: border-box;
             }
 
             table {
-                min-width: 100%;
+                width: 100%;
                 font-size: 0.9em;
+                table-layout: fixed;
             }
 
             th, td {
-                padding: 12px 10px;
+                padding: 12px 8px;
                 font-size: 0.9em;
-                white-space: nowrap;
-                min-width: 100px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
 
-            th:first-child, td:first-child {
-                min-width: 150px; /* More space for product names */
-                white-space: normal;
-                word-break: break-word;
+            /* Mobile column distribution */
+            th:nth-child(1), td:nth-child(1) {
+                width: 45%; /* Product name */
+            }
+
+            th:nth-child(2), td:nth-child(2) {
+                width: 25%; /* Size */
+            }
+
+            th:nth-child(3), td:nth-child(3) {
+                width: 30%; /* Price */
             }
 
             .search-input {
                 padding: 12px 45px 12px 15px;
                 font-size: 1em;
+                width: 100%;
+                box-sizing: border-box;
             }
 
             .search-icon {
@@ -299,6 +345,10 @@
 
         /* Extra small devices (phones in portrait) */
         @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
             .header h1 {
                 font-size: 1.6em;
             }
@@ -308,8 +358,21 @@
             }
 
             th, td {
-                padding: 10px 8px;
+                padding: 10px 6px;
                 font-size: 0.85em;
+            }
+
+            /* Very small screen column distribution */
+            th:nth-child(1), td:nth-child(1) {
+                width: 40%; /* Product name */
+            }
+
+            th:nth-child(2), td:nth-child(2) {
+                width: 25%; /* Size */
+            }
+
+            th:nth-child(3), td:nth-child(3) {
+                width: 35%; /* Price */
             }
 
             .search-input {
@@ -405,23 +468,28 @@
         let allProducts = []; // Store all products for searching
         let attemptCount = 0;
 
-        // Format price as Nigerian Naira
+        // Format price as Nigerian Naira (no decimals)
         function formatPrice(price) {
             if (price === null || price === undefined || price === '') {
                 return '₦0';
             }
             
             // Convert to number if it's a string
-            const numPrice = typeof price === 'string' ? parseFloat(price.replace(/[^\d.-]/g, '')) : price;
+            let numPrice;
+            if (typeof price === 'string') {
+                // Remove any existing currency symbols and parse
+                numPrice = parseFloat(price.replace(/[₦,\s]/g, ''));
+            } else {
+                numPrice = price;
+            }
             
             if (isNaN(numPrice)) {
                 return '₦0';
             }
             
-            // Format with commas and only show decimals when needed
-            const formatted = numPrice % 1 === 0 ? 
-                numPrice.toLocaleString('en-US') : 
-                numPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            // Round to remove decimals and format with commas
+            const roundedPrice = Math.round(numPrice);
+            const formatted = roundedPrice.toLocaleString('en-US');
             
             return `₦${formatted}`;
         }
@@ -616,7 +684,7 @@
             }
             
             return {
-                headers: ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'],
+                headers: ['Product Name', 'Size', 'Price'],
                 data: products
             };
         }
@@ -643,7 +711,7 @@
             });
             
             return {
-                headers: ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'],
+                headers: ['Product Name', 'Size', 'Price'],
                 data: products
             };
         }
@@ -655,15 +723,24 @@
             
             // Ensure we have valid headers
             if (!headers || headers.length === 0) {
-                headers = ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'];
+                headers = ['Product Name', 'Size', 'Price'];
             }
             
             // Clean and normalize headers
             const cleanHeaders = headers.map(header => {
                 if (typeof header === 'string') {
-                    return header.trim().toUpperCase();
+                    let cleanHeader = header.trim();
+                    // Normalize specific headers
+                    if (cleanHeader.toLowerCase().includes('product')) {
+                        return 'Product Name';
+                    } else if (cleanHeader.toLowerCase().includes('size')) {
+                        return 'Size';
+                    } else if (cleanHeader.toLowerCase().includes('price') || cleanHeader.toLowerCase().includes('selling')) {
+                        return 'Price';
+                    }
+                    return cleanHeader;
                 }
-                return String(header).trim().toUpperCase();
+                return String(header).trim();
             });
             
             // Set up table headers
@@ -700,16 +777,13 @@
                     const headerName = i < cleanHeaders.length ? cleanHeaders[i] : '';
                     
                     // Apply styling based on column type
-                    if (headerName.includes('PRODUCT') || headerName.includes('NAME')) {
+                    if (headerName.includes('Product') || headerName.includes('Name')) {
                         td.innerHTML = `<span class="product-name">${cellValue}</span>`;
-                    } else if (headerName.includes('SIZE') || headerName.includes('SIZES')) {
+                    } else if (headerName.includes('Size')) {
                         td.innerHTML = `<span class="product-size">${cellValue}</span>`;
-                    } else if (headerName.includes('PRICE') || headerName.includes('SELLING')) {
-                        if (cellValue && /^\d+(\.\d+)?$/.test(cellValue.toString().trim())) {
-                            td.innerHTML = `<span class="price">${formatPrice(cellValue)}</span>`;
-                        } else {
-                            td.innerHTML = `<span class="price">${cellValue}</span>`;
-                        }
+                    } else if (headerName.includes('Price')) {
+                        // Always format price values, regardless of format
+                        td.innerHTML = `<span class="price">${formatPrice(cellValue)}</span>`;
                     } else {
                         td.textContent = cellValue;
                     }
