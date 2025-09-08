@@ -231,7 +231,7 @@
             font-style: italic;
         }
 
-        /* Mobile Responsiveness */
+        /* Mobile Responsiveness - Enhanced for better compatibility */
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -249,9 +249,27 @@
                 padding: 20px 15px;
             }
 
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            }
+
+            table {
+                min-width: 100%;
+                font-size: 0.9em;
+            }
+
             th, td {
-                padding: 12px 15px;
-                font-size: 0.95em;
+                padding: 12px 10px;
+                font-size: 0.9em;
+                white-space: nowrap;
+                min-width: 100px;
+            }
+
+            th:first-child, td:first-child {
+                min-width: 150px; /* More space for product names */
+                white-space: normal;
+                word-break: break-word;
             }
 
             .search-input {
@@ -263,6 +281,40 @@
                 right: 15px;
                 width: 18px;
                 height: 18px;
+            }
+
+            .loading-text {
+                font-size: 1em;
+            }
+
+            .error-text {
+                font-size: 1.1em;
+            }
+
+            .retry-button {
+                padding: 12px 25px;
+                font-size: 1em;
+            }
+        }
+
+        /* Extra small devices (phones in portrait) */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.6em;
+            }
+
+            .content {
+                padding: 15px 10px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.85em;
+            }
+
+            .search-input {
+                padding: 10px 40px 10px 12px;
+                font-size: 0.95em;
             }
         }
 
@@ -450,23 +502,61 @@
             updateSearchResults();
         }
 
-        // Parse CSV data exactly as it appears in the sheet
+        // Parse CSV data with multiple fallback methods for mobile compatibility
         function parseCSVData(csvText) {
-            console.log('Parsing CSV data...');
+            console.log('Raw CSV data received:', csvText);
             
-            // Split by newlines to get rows
+            // Clean up the data
+            const cleanData = csvText.trim();
+            
+            // Method 1: Try standard CSV parsing first
+            try {
+                const standardResult = parseStandardCSV(cleanData);
+                if (standardResult.data.length > 0) {
+                    console.log('Successfully parsed as standard CSV');
+                    return standardResult;
+                }
+            } catch (error) {
+                console.log('Standard CSV parsing failed, trying alternative methods');
+            }
+            
+            // Method 2: Try concatenated format (mobile browsers often get this)
+            try {
+                const concatenatedResult = parseConcatenatedFormat(cleanData);
+                if (concatenatedResult.data.length > 0) {
+                    console.log('Successfully parsed as concatenated format');
+                    return concatenatedResult;
+                }
+            } catch (error) {
+                console.log('Concatenated parsing failed');
+            }
+            
+            // Method 3: Try space-separated format
+            try {
+                const spaceResult = parseSpaceSeparatedFormat(cleanData);
+                if (spaceResult.data.length > 0) {
+                    console.log('Successfully parsed as space-separated format');
+                    return spaceResult;
+                }
+            } catch (error) {
+                console.log('Space-separated parsing failed');
+            }
+            
+            throw new Error('All parsing methods failed');
+        }
+
+        // Standard CSV parsing with proper quote handling
+        function parseStandardCSV(csvText) {
             const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
             
             if (lines.length === 0) {
-                throw new Error('No data found in CSV');
+                throw new Error('No data found');
             }
             
             const results = [];
             let headers = [];
             
-            // Process each line
             lines.forEach((line, index) => {
-                // Split by comma, but handle quoted values
                 const row = [];
                 let current = '';
                 let inQuotes = false;
@@ -487,77 +577,177 @@
                 
                 if (index === 0) {
                     headers = row;
-                } else {
-                    // Only add non-empty rows
-                    if (row.some(cell => cell && cell.trim())) {
-                        results.push(row);
-                    }
+                } else if (row.some(cell => cell && cell.trim())) {
+                    results.push(row);
                 }
             });
-            
-            console.log('Parsed headers:', headers);
-            console.log('Parsed data rows:', results.length);
             
             return { headers, data: results };
         }
 
-        // Populate table with exact data from sheet
+        // Parse concatenated format (common on mobile)
+        function parseConcatenatedFormat(rawData) {
+            // Remove header pattern and clean up
+            let cleanData = rawData.replace(/PRODUCT\s*NAME\s*,?\s*SIZES?\s*,?\s*SELLING\s*PRICE\s*/i, '');
+            
+            // Split by product patterns (capital letters starting new products)
+            const productPattern = /([A-Z][A-Z\s]+?)(\d+[A-Z]*L?,?\s*)(\d+)/g;
+            const products = [];
+            let match;
+            
+            while ((match = productPattern.exec(cleanData)) !== null) {
+                const productName = match[1].trim().replace(/,$/, '');
+                const size = match[2].trim().replace(/,$/, '');
+                const price = match[3].trim();
+                
+                if (productName && size && price) {
+                    products.push([productName, size, price]);
+                }
+            }
+            
+            if (products.length === 0) {
+                // Fallback: try splitting by spaces and grouping by 3
+                const parts = cleanData.split(/\s+/).filter(part => part.trim());
+                for (let i = 0; i < parts.length - 2; i += 3) {
+                    if (parts[i] && parts[i + 1] && parts[i + 2] && /^\d+$/.test(parts[i + 2])) {
+                        products.push([parts[i], parts[i + 1], parts[i + 2]]);
+                    }
+                }
+            }
+            
+            return {
+                headers: ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'],
+                data: products
+            };
+        }
+
+        // Parse space-separated format
+        function parseSpaceSeparatedFormat(rawData) {
+            const lines = rawData.split('\n').filter(line => line.trim());
+            const products = [];
+            
+            lines.forEach((line, index) => {
+                if (index === 0) return; // Skip header
+                
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 3) {
+                    // Try to identify product name, size, and price
+                    const price = parts[parts.length - 1];
+                    const size = parts[parts.length - 2];
+                    const productName = parts.slice(0, -2).join(' ');
+                    
+                    if (productName && size && /^\d+$/.test(price)) {
+                        products.push([productName, size, price]);
+                    }
+                }
+            });
+            
+            return {
+                headers: ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'],
+                data: products
+            };
+        }
+
+        // Populate table with robust data handling for mobile compatibility
         function populateTable(headers, data) {
-            // Set up table headers exactly as they appear in the sheet
+            console.log('Populating table with headers:', headers);
+            console.log('Data rows:', data.length);
+            
+            // Ensure we have valid headers
+            if (!headers || headers.length === 0) {
+                headers = ['PRODUCT NAME', 'SIZES', 'SELLING PRICE'];
+            }
+            
+            // Clean and normalize headers
+            const cleanHeaders = headers.map(header => {
+                if (typeof header === 'string') {
+                    return header.trim().toUpperCase();
+                }
+                return String(header).trim().toUpperCase();
+            });
+            
+            // Set up table headers
             tableHeader.innerHTML = '';
-            headers.forEach(header => {
+            cleanHeaders.forEach(header => {
                 const th = document.createElement('th');
                 th.textContent = header;
                 tableHeader.appendChild(th);
             });
 
-            // Populate table body with exact data
+            // Clear and populate table body
             tableBody.innerHTML = '';
             allProducts = data;
             
-            data.forEach(row => {
+            if (!data || data.length === 0) {
+                throw new Error('No product data to display');
+            }
+            
+            data.forEach((row, rowIndex) => {
+                // Ensure row is an array
+                if (!Array.isArray(row)) {
+                    console.warn(`Row ${rowIndex} is not an array:`, row);
+                    return;
+                }
+                
                 const tr = document.createElement('tr');
                 
-                row.forEach((cell, index) => {
+                // Handle different row lengths
+                const maxCols = Math.max(cleanHeaders.length, row.length);
+                
+                for (let i = 0; i < maxCols; i++) {
                     const td = document.createElement('td');
+                    const cellValue = i < row.length ? (row[i] || '') : '';
+                    const headerName = i < cleanHeaders.length ? cleanHeaders[i] : '';
                     
-                    // Format price column if it contains numbers (likely the price)
-                    if (headers[index] && headers[index].toLowerCase().includes('price') && 
-                        cell && /^\d+(\.\d+)?$/.test(cell.trim())) {
-                        td.innerHTML = `<span class="price">${formatPrice(cell)}</span>`;
-                    } else if (headers[index] && headers[index].toLowerCase().includes('product')) {
-                        td.innerHTML = `<span class="product-name">${cell || ''}</span>`;
-                    } else if (headers[index] && (headers[index].toLowerCase().includes('size') || headers[index].toLowerCase().includes('sizes'))) {
-                        td.innerHTML = `<span class="product-size">${cell || ''}</span>`;
+                    // Apply styling based on column type
+                    if (headerName.includes('PRODUCT') || headerName.includes('NAME')) {
+                        td.innerHTML = `<span class="product-name">${cellValue}</span>`;
+                    } else if (headerName.includes('SIZE') || headerName.includes('SIZES')) {
+                        td.innerHTML = `<span class="product-size">${cellValue}</span>`;
+                    } else if (headerName.includes('PRICE') || headerName.includes('SELLING')) {
+                        if (cellValue && /^\d+(\.\d+)?$/.test(cellValue.toString().trim())) {
+                            td.innerHTML = `<span class="price">${formatPrice(cellValue)}</span>`;
+                        } else {
+                            td.innerHTML = `<span class="price">${cellValue}</span>`;
+                        }
                     } else {
-                        td.textContent = cell || '';
+                        td.textContent = cellValue;
                     }
                     
                     tr.appendChild(td);
-                });
+                }
                 
                 tableBody.appendChild(tr);
             });
             
-            if (data.length === 0) {
-                throw new Error('No valid product data found');
-            }
-            
+            console.log(`Table populated with ${data.length} rows`);
             showTable();
         }
 
-        // Try multiple methods to get fresh data
+        // Enhanced data fetching with mobile browser compatibility
         async function tryMultipleMethods() {
             const timestamp = new Date().getTime(); // Cache busting
             
             const methods = [
                 {
-                    name: 'CSV Export',
+                    name: 'CSV Export (AllOrigins)',
+                    proxyUrl: 'https://api.allorigins.win/raw?url=',
                     url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&timestamp=${timestamp}`
                 },
                 {
-                    name: 'TSV Export', 
+                    name: 'CSV Export (CorsProxy)',
+                    proxyUrl: 'https://corsproxy.io/?',
+                    url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&timestamp=${timestamp}`
+                },
+                {
+                    name: 'TSV Export (AllOrigins)', 
+                    proxyUrl: 'https://api.allorigins.win/raw?url=',
                     url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&gid=${GID}&timestamp=${timestamp}`
+                },
+                {
+                    name: 'HTML Export (AllOrigins)',
+                    proxyUrl: 'https://api.allorigins.win/raw?url=',
+                    url: `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=html&gid=${GID}&timestamp=${timestamp}`
                 }
             ];
 
@@ -565,25 +755,78 @@
                 try {
                     console.log(`Trying ${method.name}...`);
                     
-                    // Try with CORS proxy
-                    const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                    const response = await fetch(proxyUrl + encodeURIComponent(method.url), {
-                        cache: 'no-store' // Always fetch fresh data
+                    const fullUrl = method.proxyUrl + encodeURIComponent(method.url);
+                    const response = await fetch(fullUrl, {
+                        cache: 'no-store', // Always fetch fresh data
+                        mode: 'cors',
+                        headers: {
+                            'Accept': 'text/plain, text/csv, text/html, */*'
+                        }
                     });
                     
                     if (response.ok) {
-                        const data = await response.text();
-                        if (data && data.trim()) {
+                        let data = await response.text();
+                        
+                        // Clean up HTML format if needed
+                        if (method.name.includes('HTML')) {
+                            data = extractTableFromHTML(data);
+                        }
+                        
+                        // Convert TSV to CSV format
+                        if (method.name.includes('TSV')) {
+                            data = data.replace(/\t/g, ',');
+                        }
+                        
+                        if (data && data.trim() && data.length > 50) { // Ensure we have substantial data
                             console.log(`Success with ${method.name}`);
+                            console.log(`Data length: ${data.length} characters`);
                             return { method: method.name, data: data };
                         }
                     }
                 } catch (error) {
-                    console.log(`${method.name} failed:`, error);
+                    console.log(`${method.name} failed:`, error.message);
                 }
             }
             
-            throw new Error('All methods failed');
+            throw new Error('All methods failed to fetch data');
+        }
+
+        // Extract table data from HTML format (fallback method)
+        function extractTableFromHTML(htmlData) {
+            try {
+                // Create a temporary DOM element to parse HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlData;
+                
+                const table = tempDiv.querySelector('table');
+                if (!table) return '';
+                
+                const rows = table.querySelectorAll('tr');
+                const csvRows = [];
+                
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td, th');
+                    const csvCells = [];
+                    
+                    cells.forEach(cell => {
+                        let text = cell.textContent.trim();
+                        // Escape commas and quotes for CSV format
+                        if (text.includes(',') || text.includes('"')) {
+                            text = `"${text.replace(/"/g, '""')}"`;
+                        }
+                        csvCells.push(text);
+                    });
+                    
+                    if (csvCells.length > 0) {
+                        csvRows.push(csvCells.join(','));
+                    }
+                });
+                
+                return csvRows.join('\n');
+            } catch (error) {
+                console.error('Failed to extract table from HTML:', error);
+                return '';
+            }
         }
 
         // Main fetch function - always gets fresh data
